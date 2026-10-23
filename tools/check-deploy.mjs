@@ -623,6 +623,35 @@ export const RULES = [
       return problems.length ? fail(`не закріплено: ${problems.join("; ")}`) : pass(`закріплено: ${count}`);
     },
   },
+  {
+    id: "C5",
+    title: "Змінні compose збігаються з config.js",
+    hint: "Кожна змінна оточення, яку читає app/src/config.js (env.НАЗВА), має бути задана в environment: кожного сервісу, що використовує цей код. Якщо compose задає змінну з іншою назвою — застосунок візьме значення за замовчуванням, і це може стати причиною інциденту.",
+    check({ compose, root }) {
+      const problem = composeProblem(compose);
+      if (problem) return problem;
+      let configText;
+      try {
+        configText = readFileSync(join(root, "app", "src", "config.js"), "utf8");
+      } catch {
+        return skip("app/src/config.js не знайдено");
+      }
+      const configVars = [...configText.matchAll(/env\.([A-Z_][A-Z0-9_]*)/g)].map((m) => m[1]);
+      if (!configVars.length) return skip("у config.js не знайдено змінних оточення");
+      const problems = [];
+      for (const [name, svc] of services(compose)) {
+        const envKeys = new Set(envEntries(svc?.environment).map(([k]) => k));
+        for (const v of configVars) {
+          if (envKeys.has(v)) continue;
+          const prefix = v.split("_").slice(0, -1).join("_");
+          if (!prefix) continue;
+          const similar = [...envKeys].find((k) => k !== v && k.startsWith(prefix + "_") && !configVars.includes(k));
+          if (similar) problems.push(`${name}: config.js читає ${v}, але compose задає ${similar}`);
+        }
+      }
+      return problems.length ? fail(problems.join("; ")) : pass("змінні compose відповідають config.js");
+    },
+  },
 ];
 
 // ---------------------------------------------------------------- running

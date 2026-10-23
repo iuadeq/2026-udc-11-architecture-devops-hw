@@ -2,12 +2,14 @@
 # PostgreSQL працює на самій VM, поза compose.
 services:
   api:
-    image: poshtomat:latest
+    image: poshtomat:${IMAGE_TAG:?set IMAGE_TAG}
     build:
       context: ../app
       dockerfile: ../deploy/Dockerfile
     ports:
       - "8080:8080"
+    restart: unless-stopped
+    mem_limit: 512m
     environment:
       TZ: "Europe/Kyiv"
       PORT: "8080"
@@ -16,13 +18,17 @@ services:
       DB_POOL_MAX: "20"
       DB_POOL_WAIT_MS: "2000"
       SMS_BASE_URL: "https://sms.example.net/api/v2"
-      SMS_TOKEN: "CHANGE_ME"
+      SMS_TOKEN: "${SMS_TOKEN:?set SMS_TOKEN}"
       SMS_RATE_PER_SEC: "20"
       COURIER_BASE_URL: "https://courier.example.com/api/v1"
 
   worker:
-    image: poshtomat:latest
+    image: poshtomat:${IMAGE_TAG:?set IMAGE_TAG}
     command: ["node", "src/worker.js"]
+    restart: unless-stopped
+    mem_limit: 256m
+    healthcheck:
+      disable: true
     environment:
       TZ: "Europe/Kyiv"
       LOG_LEVEL: "info"
@@ -30,6 +36,6 @@ services:
       DB_POOL_MAX: "20"
       DB_POOL_WAIT_MS: "2000"
       SMS_BASE_URL: "https://sms.example.net/api/v2"
-      SMS_TOKEN: "CHANGE_ME"
+      SMS_TOKEN: "${SMS_TOKEN:?set SMS_TOKEN}"
       SMS_RATE_PER_SEC: "20"
       COURIER_BASE_URL: "https://courier.example.com/api/v1"
