@@ -1,0 +1,25 @@
+ID  STATUS  MESSAGE
+D1  FAIL    Базовий образ з явним тегом (не latest): рядок 1: FROM node:latest — тег latest
+            підказка: Вкажіть конкретну версію базового образу (наприклад, мажорна версія Node + варіант) або digest @sha256:…
+D2  FAIL    USER у фінальному образі, не root: у фінальній стадії немає USER — контейнер працює як root
+            підказка: Додайте у фінальну стадію USER з непривілейованим користувачем (в образах node є користувач node) — після COPY і перед CMD.
+D3  FAIL    Перевірка здоров'я: HEALTHCHECK або healthcheck у кожного сервісу: у Dockerfile немає HEALTHCHECK; без healthcheck у compose: api, worker
+            підказка: Або HEALTHCHECK у Dockerfile, або healthcheck: (test, interval, retries) у кожного сервісу compose; HEALTHCHECK NONE, test: ["NONE"] і disable: true — це не перевірка. Образ спільний для api і worker, а HTTP-сервер є лише в api: HTTP-перевірку з образу worker не пройде — для worker вимкніть її (healthcheck: disable: true) або дайте йому власну, а сервісу з ports: її вимикати не можна. У node:*-alpine і node:*-slim немає curl — перевіряйте через node -e.
+D4  FAIL    Жодних секретів у ENV/ARG Dockerfile: рядок 4: ENV SMS_TOKEN має значення в образі
+            підказка: Секрет не має бути в образі: приберіть ENV/ARG зі значенням для TOKEN/SECRET/PASSWORD/KEY і передавайте його під час запуску — environment: з ${VAR:?…} з оточення. secrets: / *_FILE — лише якщо додасте читання файлу в app/src/config.js: застосунок бере секрети тільки зі змінних оточення.
+C1  FAIL    Образи в compose з фіксованим тегом: api: poshtomat:latest — тег latest; worker: poshtomat:latest — тег latest
+            підказка: Кожен сервіс — image: з версією (наприклад, тег релізу або ${IMAGE_TAG:?}), не latest і не без тегу. Змінна в тегу — лише з :? (обов'язкова) або з :-значенням за замовчуванням, яке саме є версією. Лише build: без image теж не годиться.
+C2  FAIL    Політика перезапуску в кожного сервісу: без restart: api, worker
+            підказка: Додайте restart: unless-stopped (або on-failure) кожному довгоживучому сервісу — інакше впалий процес так і лишиться лежати. Разова задача без ports: (запуск через docker compose run) може мати restart: "no" — це теж явне рішення.
+C3  FAIL    Ліміт пам'яті в кожного сервісу: без ліміту пам'яті: api, worker
+            підказка: Задайте mem_limit: або deploy.resources.limits.memory кожному сервісу — разом вони мають уміститися в пам'ять VM.
+C4  FAIL    Секрети в compose лише посиланням: api: SMS_TOKEN задано літералом; worker: SMS_TOKEN задано літералом
+            підказка: Для TOKEN/SECRET/PASSWORD/KEY — значення ${VAR} або ${VAR:?…} з оточення чи .env поза git; ${VAR:-літерал} — теж літерал. secrets: / *_FILE — лише якщо додасте читання файлу в app/src/config.js: застосунок бере секрети тільки зі змінних оточення.
+W1  FAIL    pipeline/deploy.yml існує, валідний YAML, без pull_request_target: pipeline/deploy.yml не знайдено
+            підказка: Створіть pipeline/deploy.yml (не в .github/workflows/) з on: і jobs:. Тригер pull_request_target дає коду з чужого PR доступ до секретів — не використовуйте його.
+W2  SKIP    Мінімальні permissions на рівні workflow: немає валідного pipeline/deploy.yml (див. W1)
+W3  SKIP    Деплой-job з environment: і needs: на тести: немає валідного pipeline/deploy.yml (див. W1)
+W4  SKIP    Секрети в workflow лише через ${{ secrets.NAME }}: немає валідного pipeline/deploy.yml (див. W1)
+W5  SKIP    Кожен uses: закріплено тегом або SHA: немає валідного pipeline/deploy.yml (див. W1)
+
+PASS 0  FAIL 9  SKIP 4

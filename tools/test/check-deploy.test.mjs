@@ -330,7 +330,7 @@ test("the CLI prints a row per rule, survives broken YAML and exits 1 on failure
     const rows = Object.fromEntries(out.split("\n").filter((l) => /^[DCW]\d /.test(l)).map((l) => [l.slice(0, 2), l.slice(4, 8)]));
     assert.deepEqual(rows, {
       D1: "PASS", D2: "PASS", D3: "FAIL", D4: "PASS",
-      C1: "PASS", C2: "PASS", C3: "PASS", C4: "PASS",
+      C1: "PASS", C2: "PASS", C3: "PASS", C4: "PASS", C5: "SKIP",
       W1: "FAIL", W2: "SKIP", W3: "SKIP", W4: "SKIP", W5: "SKIP",
     });
     assert.match(out, /W1 +FAIL .*не розібрався як YAML/);
